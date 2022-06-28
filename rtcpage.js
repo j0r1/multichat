@@ -451,7 +451,7 @@ async function startLocalStreamAsync(displayName)
     }
 
     vid.srcObject = localStream;
-    // vid.play(); // Actually returns a promise, but not needed because of autoplay
+    await vid.play();
 }
 
 function startLocalStream(displayName)
@@ -464,17 +464,106 @@ function startLocalStream(displayName)
     })
 }
 
+function getUserAndRoom()
+{
+    return new Promise((resolve, reject) => {
+
+        const nameKey = "multichatDisplayName";
+        const serverKey = "multichatServerURL";
+        const roomKey = "multichatRoomID";
+
+        let name = "JimminyBillyBob";
+        let server = "ws://localhost:8888";
+        let room = "ABC123";
+        
+        if (nameKey in localStorage)
+            name = localStorage[nameKey];
+        if (serverKey in localStorage)
+            server = localStorage[serverKey];
+        if (roomKey in localStorage)
+            room = localStorage[roomKey];
+
+        vex.dialog.open({
+            message: "Specify your name, server URL, and room name",
+            input: `
+            <style>
+                .vex-custom-field-wrapper {
+                    margin: 1em 0;
+                }
+                .vex-custom-field-wrapper > label {
+                    display: inline-block;
+                    margin-bottom: .2em;
+                }
+            </style>
+            <div class="vex-custom-field-wrapper">
+                <label for="name">Name</label>
+                <div class="vex-custom-input-wrapper">
+                    <input id="input_name" name="name" type="text"/>
+                </div>
+            </div>
+            <div class="vex-custom-field-wrapper">
+                <label for="serverurl">Server URL</label>
+                <div class="vex-custom-input-wrapper">
+                    <input id="input_server" name="serverurl" type="text"/>
+                </div>
+            </div>
+            <div class="vex-custom-field-wrapper">
+                <label for="roomid">Room</label>
+                <div class="vex-custom-input-wrapper">
+                    <input id="input_room" name="roomid" type="text"/>
+                </div>
+            </div>`,
+            afterOpen: function() {
+                $("#input_name").val(name);
+                $("#input_server").val(server);
+                $("#input_room").val(room);
+            },
+            callback: function (data) {
+                if (!data)
+                {
+                    reject(new Error("User cancelled"));
+                    return;
+                }
+
+                let name = $("#input_name").val();
+                let server = $("#input_server").val();
+                let room = $("#input_room").val();
+                localStorage[nameKey] = name;
+                localStorage[serverKey] = server;
+                localStorage[roomKey] = room;
+                let obj = { "name": name, "roomid": room, "serverlurl": server };
+                resolve(obj);
+            }
+        })
+    });
+}
+
 async function main()
 {
+    vex.defaultOptions.className = 'vex-theme-wireframe';
+
     backupStream = await setupBackupStream();
     setInterval(periodicCheckWebCamAvailable, 1000);
 
-    showButtons(false);
+    showButtons(true);
 
-    roomConn.onFatalError = (err) => { console.log("FATAL ERROR"); console.log(err); }
-    roomConn.onUserJoined = (wsUuid, name, isSelf) => { console.log(`User joined: ${wsUuid} ${name} ${isSelf}`); }
+    roomConn.onFatalError = (err) => { 
+        
+        vex.dialog.alert("" + err);
+
+        console.log("FATAL ERROR");
+        console.log(err);
+    }
+    roomConn.onUserJoined = (wsUuid, name, isSelf) => { 
+        console.log(`User joined: ${wsUuid} ${name} ${isSelf}`); 
+        if (isSelf)
+            startLocalStream(name);
+    }
     roomConn.onUserLeft = (wsUuid) => console.log(`User left: ${wsUuid}`);
     roomConn.onP2PMessage = (msg) => { console.log("Got P2P message"); console.log(msg); }
-    roomConn.open("ws://localhost:8888", "ABC123", "Me");
+
+    let connInfo = await getUserAndRoom();
+
+    roomConn.open(connInfo.serverlurl, connInfo.roomid, connInfo.name);
 }
 
