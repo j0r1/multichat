@@ -14,7 +14,7 @@ function createCells(xoffset, yoffset, width, height, numCols, numRows)
             let x0 = xoffset + c*cellWidth;
             let x1 = x0 + cellWidth;
 
-            layout.push([x0, y0, x1, y1]);
+            layout.push({ "style": { "zIndex": 0 }, "coords": [x0, y0, x1, y1] });
         }
     }
     return layout;
@@ -29,11 +29,11 @@ function addLayout(layoutsForCells, l)
         layoutsForCells[numCells].push(l);
 }
 
-function generateLayouts(layoutsForCells)
+function generateLayouts(layoutsForCells, num=10)
 {
-    for (let r = 1 ; r <= 10 ; r++)
+    for (let r = 1 ; r <= num ; r++)
     {
-        for (let c = 1 ; c <= 10 ; c++)
+        for (let c = 1 ; c <= num ; c++)
         {
             // start with r*c cells, check if last row/column can be less
             addLayout(layoutsForCells, createCells(0,0,1,1,c,r));
@@ -57,8 +57,31 @@ function generateLayouts(layoutsForCells)
     return layoutsForCells;
 }
 
-const layoutsForCells = {};
-generateLayouts(layoutsForCells);
+function generateInsetLayouts(layoutsForCells, num=10)
+{
+    let base = {};
+    generateLayouts(base, num);
+    
+    addLayout(layoutsForCells, [...base[1][0]]);
+
+    for (let numCells in base)
+    {
+        for (let layout of base[numCells])
+        {
+            let newLayout = [
+                { "style": { "zIndex": 30, "left":"calc(80% - 5px)", "top": "5px", "width": "20%", "height": "calc(20vw*3/4)"} },
+                ...layout
+            ];
+            addLayout(layoutsForCells, newLayout);
+        }
+    }
+}
+
+const layoutsEqualSize = {};
+const layoutsWithInset = {};
+generateLayouts(layoutsEqualSize);
+generateInsetLayouts(layoutsWithInset);
+let layoutsForCells = layoutsWithInset;
 
 let videosAndNames = [];
 
@@ -153,13 +176,23 @@ function applyLayout(layout)
     // set their coordinates
     for (let i = 0 ; i < layout.length ; i++)
     {
-        let [ x0, y0, x1, y1 ] = layout[i];
+        let l = layout[i];
         let d = currentCells[i];
-        let margin = "3";
-        d.style.left = `${x0*100}%`;
-        d.style.top = `${y0*100}%`;
-        d.style.width = `calc(${(x1-x0)*100}% - ${2*margin}px)`;
-        d.style.height = `calc(${(y1-y0)*100}% - ${2*margin}px)`;
+        if ("coords" in l)
+        {
+            let [ x0, y0, x1, y1 ] = l["coords"];
+            d.style.left = `${x0*100}%`;
+            d.style.top = `${y0*100}%`;
+            d.style.width = `${(x1-x0)*100}%`;
+            d.style.height = `${(y1-y0)*100}%`;
+            d.style.overflow = "hidden";
+        }
+
+        if ("style" in l)
+        {
+            for (let s in l["style"])
+                d.style[s] = "" + l["style"][s];
+        }
     }
 
     // remove excess cells
@@ -173,6 +206,17 @@ function toggleNextLayout()
     currentLayoutIndex = (currentLayoutIndex+1)%layouts.length;
 
     applyLayout(layouts[currentLayoutIndex]);
+}
+
+function toggleLayoutStyle()
+{
+    if (layoutsForCells === layoutsWithInset)
+        layoutsForCells = layoutsEqualSize;
+    else
+        layoutsForCells = layoutsWithInset;
+
+    currentLayoutIndex = -1; // The toggleNextLayout function will set it to 0
+    toggleNextLayout();
 }
 
 function showButtons(show)
