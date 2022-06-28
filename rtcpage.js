@@ -1,37 +1,13 @@
 
 class RTCCommunicator
 {
-    constructor()
-    {
-    }
+    constructor() { }
 
-    onIceCandidate(uuid, candStr)
-    {
-    }
-
-    onConnected(uuid)
-    {
-    }
-
-    onGeneratedOffer(uuid, offer)
-    {
-    }
-
-    onGeneratedAnswer(uuid, answer)
-    {
-    }
-
-    onStreamError(uuid, errStr)
-    {
-    }
-
-    onLocalStreamStarted()
-    {
-    }
-
-    onLocalStreamError(errStr)
-    {
-    }
+    onIceCandidate(uuid, candStr) { }
+    onConnected(uuid) { }
+    onGeneratedOffer(uuid, offer) { }
+    onGeneratedAnswer(uuid, answer) { }
+    onStreamError(uuid, errStr) { }
 }
 
 class RoomConnection
@@ -91,7 +67,7 @@ class RoomConnection
         }
     }
 
-    _sendMessage(msg)
+    sendMessage(msg)
     {
         try
         {
@@ -128,7 +104,7 @@ class RoomConnection
                 this.wsUuid = obj["uuid"];
 
                 // Send out room and name message
-                this._sendMessage({"roomid": this.roomId, "displayname": this.name});
+                this.sendMessage({"roomid": this.roomId, "displayname": this.name});
             }
         }
         else
@@ -456,12 +432,14 @@ async function startLocalStreamAsync(displayName)
 
 function startLocalStream(displayName)
 {
-    startLocalStreamAsync(displayName)
-    .then(() => communicator.onLocalStreamStarted())
-    .catch((err) => {
-        removeStream(localStreamName);
-        communicator.onLocalStreamError("" + err);
-    })
+    return new Promise((resolve, reject) => {
+        startLocalStreamAsync(displayName)
+        .then(() => { resolve(); })
+        .catch((err) => {
+            removeStream(localStreamName);
+            reject(err);
+        })
+    });
 }
 
 function getUserAndRoom()
@@ -554,15 +532,67 @@ async function main()
         console.log("FATAL ERROR");
         console.log(err);
     }
+
     roomConn.onUserJoined = (wsUuid, name, isSelf) => { 
-        console.log(`User joined: ${wsUuid} ${name} ${isSelf}`); 
+        console.log(`User joined: ${wsUuid} ${name} ${isSelf}`);
         if (isSelf)
-            startLocalStream(name);
+            console.log("It's us!");
+        else
+        {
+            // let's just use the wsUuid to identify RTC streams as well
+            startGenerateOffer(wsUuid, name);
+        }
     }
-    roomConn.onUserLeft = (wsUuid) => console.log(`User left: ${wsUuid}`);
-    roomConn.onP2PMessage = (msg) => { console.log("Got P2P message"); console.log(msg); }
+
+    roomConn.onUserLeft = (wsUuid) => {
+        console.log(`User left: ${wsUuid}`);
+        removeStream(wsUuid);
+    }
+
+    roomConn.onP2PMessage = (msg) => {
+        console.log("Got P2P message");
+        console.log(msg);
+
+        if ("offer" in msg)
+        {
+            startFromOffer(msg.source, msg.offer, msg.displayname);
+
+            // TODO: buffered ICE candidates
+        }
+        else if ("answer" in msg)
+        {
+            processAnswer(msg.source, msg.answer);
+        }
+        else if ("ice" in msg)
+        {
+            // TODO: buffer if needed?
+
+            addIceCandidate(msg.source, msg.ice);
+        }
+        else
+            console.log("Unhandled message!");
+    }
+
+    communicator.onIceCandidate = (uuid, candStr) => {
+        roomConn.sendMessage({ "destination": uuid, "ice": candStr});
+    }
+
+    communicator.onConnected = (uuid) => { console.log("Connection for " + uuid + " is connected!"); }
+    communicator.onGeneratedOffer = (uuid, offer) => {
+        roomConn.sendMessage({ "destination": uuid, "offer": offer});
+    }
+    
+    communicator.onGeneratedAnswer = (uuid, answer) => {
+        roomConn.sendMessage({ "destination": uuid, "answer": answer });
+    }
+    
+    communicator.onStreamError = (uuid, errStr) => {
+        vex.dialog.alert("Stream error for " + uuid + ": " + err);
+    }
+
 
     let connInfo = await getUserAndRoom();
+    await startLocalStream(connInfo.name);
 
     roomConn.open(connInfo.serverlurl, connInfo.roomid, connInfo.name);
 }
