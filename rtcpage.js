@@ -141,6 +141,7 @@ let roomConn = new RoomConnection();
 let communicator = new RTCCommunicator(); // TODO
 
 const localStreamName = "LOCALSTREAM";
+let localAudioStream = null;
 let localStream = null;
 let backupStream = null;
 let webcamIndex = -1;
@@ -299,6 +300,12 @@ function newPeerConnectionCommon(uuid, displayName)
     let videoTrack = localStream.getVideoTracks()[0];
     pc.addTrack(videoTrack); // This is our own video
     
+    if (localAudioStream)
+    {
+        let audioTrack = localAudioStream.getAudioTracks()[0];
+        pc.addTrack(audioTrack);
+    }
+
     // This should be the remote video (or audio in case that's enabled)
     pc.ontrack = (evt) => {
 
@@ -426,6 +433,16 @@ async function startLocalStreamAsync(displayName)
         setLocalStream(backupStream, -1);
     }
 
+    try
+    {
+        let s = await navigator.mediaDevices.getUserMedia({video:false, audio:true});
+        localAudioStream = s;
+    }
+    catch(err)
+    {
+        vex.dialog.alert("Warning: no audio stream found, remotes will not hear you");
+    }
+
     vid.srcObject = localStream;
     await vid.play();
 }
@@ -519,9 +536,11 @@ function getUserAndRoom()
 async function main()
 {
     vex.defaultOptions.className = 'vex-theme-wireframe';
+    document.getElementById("message").style.display = "none";
 
     backupStream = await setupBackupStream();
     setInterval(periodicCheckWebCamAvailable, 1000);
+    setInterval(periodicCheckMuteStatus);
 
     showButtons(true);
 
@@ -590,10 +609,43 @@ async function main()
         vex.dialog.alert("Stream error for " + uuid + ": " + err);
     }
 
-
     let connInfo = await getUserAndRoom();
     await startLocalStream(connInfo.name);
 
     roomConn.open(connInfo.serverlurl, connInfo.roomid, connInfo.name);
 }
 
+function periodicCheckMuteStatus()
+{
+    if (!localStream) // we haven't really started yet
+        return;
+
+    let enabled = false;
+    if (localAudioStream)
+    {
+        let audioTrack = localAudioStream.getAudioTracks()[0];
+        if (audioTrack.enabled)
+            enabled = true;
+    }
+
+    if (enabled)
+        document.getElementById("message").style.display = "none";
+    else
+        document.getElementById("message").style.display = "";
+}
+
+function toggleMute()
+{
+    if (!localAudioStream)
+        return;
+    
+    let audioTrack = localAudioStream.getAudioTracks()[0];
+    audioTrack.enabled = !audioTrack.enabled;
+}
+
+document.addEventListener('keypress', (evt) => {
+    if (evt.key == " ")
+        toggleMute();
+
+    periodicCheckMuteStatus();
+})

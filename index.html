@@ -5,14 +5,6 @@
     <script type="text/javascript" src="vex.dialog.js"></script>
     <script type="text/javascript" src="rtcpageui.js"></script>
     <script type="text/javascript" src="rtcpage.js"></script>
-    <script>
-        main()
-        .then(() => console.log("main started successfully"))
-        .catch((err) => {
-            document.write(`Error starting main: ${err}`);
-        });
-
-    </script>
     <link rel="stylesheet" href="vex.css">
     <link rel="stylesheet" href="vex-theme-wireframe.css">
     <style>
@@ -79,6 +71,16 @@
             transform: scale(-1,1);
         }
 
+        #message {
+            position: fixed; /* or absolute */
+            top: 10%;
+            left: 50%;
+            /* bring your own prefixes */
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            background-color: white;
+        }
+
             </style>
     <body>
         <div id="outercontainer">
@@ -89,7 +91,15 @@
                 <button onclick="toggleNextLayout()">Next layout</button>
                 <button onclick="toggleLayoutStyle()">Switch layout style</button>
             </div>
+            <div id="message">Muted (press space to toggle)</div>
         </div>
-
+        <script>
+            main()
+            .then(() => console.log("main started successfully"))
+            .catch((err) => {
+                document.write(`Error starting main: ${err}`);
+            });
+    
+        </script>    
     </body>
 </html>
