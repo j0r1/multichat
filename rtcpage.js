@@ -142,6 +142,8 @@ let communicator = new RTCCommunicator(); // TODO
 
 const localStreamName = "LOCALSTREAM";
 let localAudioStream = null;
+let isDummyAudioStream = true;
+
 let localStream = null;
 let backupStream = null;
 let webcamIndex = -1;
@@ -300,11 +302,8 @@ function newPeerConnectionCommon(uuid, displayName)
     let videoTrack = localStream.getVideoTracks()[0];
     pc.addTrack(videoTrack); // This is our own video
     
-    if (localAudioStream)
-    {
-        let audioTrack = localAudioStream.getAudioTracks()[0];
-        pc.addTrack(audioTrack);
-    }
+    let audioTrack = localAudioStream.getAudioTracks()[0];
+    pc.addTrack(audioTrack);
 
     // This should be the remote video (or audio in case that's enabled)
     pc.ontrack = (evt) => {
@@ -437,10 +436,28 @@ async function startLocalStreamAsync(displayName)
     {
         let s = await navigator.mediaDevices.getUserMedia({video:false, audio:true});
         localAudioStream = s;
+        isDummyAudioStream = false;
+
+        // start muted
+        let audioTrack = localAudioStream.getAudioTracks()[0];
+        audioTrack.enabled = false;
     }
     catch(err)
     {
         vex.dialog.alert("Warning: no audio stream found, remotes will not hear you");
+        document.getElementById("message").innerHTML = "No audio input available";
+
+        // create a dummy stream
+
+        //let audio = document.createElement("audio");
+        let ctx = new AudioContext();
+        //let src = ctx.createMediaElementSource(audio);
+        let dest = ctx.createMediaStreamDestination();
+        //src.connect(dest);
+        localAudioStream = dest.stream;
+
+        //audio.src = "soundfile.wav";
+        //audio.play();
     }
 
     vid.srcObject = localStream;
@@ -621,7 +638,7 @@ function periodicCheckMuteStatus()
         return;
 
     let enabled = false;
-    if (localAudioStream)
+    if (localAudioStream && !isDummyAudioStream)
     {
         let audioTrack = localAudioStream.getAudioTracks()[0];
         if (audioTrack.enabled)
@@ -636,7 +653,7 @@ function periodicCheckMuteStatus()
 
 function toggleMute()
 {
-    if (!localAudioStream)
+    if (!localAudioStream || isDummyAudioStream)
         return;
     
     let audioTrack = localAudioStream.getAudioTracks()[0];
