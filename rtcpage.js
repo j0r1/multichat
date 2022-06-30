@@ -658,11 +658,6 @@ function toggleMute()
     
     let audioTrack = localAudioStream.getAudioTracks()[0];
     audioTrack.enabled = !audioTrack.enabled;
-}
-
-document.addEventListener('keypress', (evt) => {
-    if (evt.key == " ")
-        toggleMute();
 
     periodicCheckMuteStatus();
-})
+}
