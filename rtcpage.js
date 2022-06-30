@@ -563,7 +563,15 @@ async function main()
 
     roomConn.onFatalError = (err) => { 
         
-        vex.dialog.alert("" + err);
+        let msg = "" + err;
+        if (err instanceof Event)
+        {
+            if (err.target instanceof WebSocket)
+                msg = "Error in WebSocket connection";
+            else
+                msg = "Unknown error: " + err;
+        }
+        vex.dialog.alert(msg);
 
         console.log("FATAL ERROR");
         console.log(err);
