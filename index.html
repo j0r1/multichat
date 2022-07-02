@@ -5,10 +5,7 @@
     <title>MultiChat</title>
 
     <script type="text/javascript" src="jquery.min.js"></script>
-    <script type="text/javascript" src="vex.js"></script>
-    <script type="text/javascript" src="vex.dialog.js"></script>
-    <script type="text/javascript" src="rtcpageui.js"></script>
-    <script type="text/javascript" src="rtcpage.js"></script>
+    <script type="text/javascript" src="vex.combined.js"></script>
     <link rel="stylesheet" href="vex.css">
     <link rel="stylesheet" href="vex-theme-wireframe.css">
     <style>
@@ -91,20 +88,24 @@
             <div id="container">
             </div>
             <div id="buttons" class="hidden">
-                <button onclick="toggleNextWebCam()">Next webcam</button>
-                <button onclick="toggleNextLayout()">Next layout</button>
-                <button onclick="toggleLayoutStyle()">Switch layout style</button>
-                <button onclick="toggleMute()">Mute/unmute</button>
+                <button id="buttonnextwebcam">Next webcam</button>
+                <button id="buttonnextlayout">Next layout</button>
+                <button id="buttonlayoutstyle">Switch layout style</button>
+                <button id="buttontogglemute">Mute/unmute</button>
+                <button id="buttonreload">Leave</button>
             </div>
             <div id="message">Muted</div>
         </div>
-        <script>
+        <script type="module">
+            import { main } from "./rtcpage.js";
             main()
             .then(() => console.log("main started successfully"))
             .catch((err) => {
-                document.write(`Error starting main: ${err}`);
+                document.body.innerHTML = `
+                    <p>Error starting main: ${err}</p>
+                    <p><button onclick="window.location.reload()">Restart</button></p>
+                `;
             });
-    
         </script>    
     </body>
 </html>

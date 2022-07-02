@@ -1,6 +1,7 @@
-const http = require("http");
-const websocket = require("websocket"); // npm install websocket
-const { v4: uuidv4 } = require('uuid');
+import { checkRoomId } from "./checkroomid.js";
+import http from "http";
+import websocket from "websocket"; // npm install websocket
+import { v4 as uuidv4 } from "uuid";
 
 const server = http.createServer((req, res) => {
     res.end("Nothing to see here");
@@ -23,7 +24,6 @@ function removeConnectionFrom(c, l)
     l.splice(idx, 1);
 }
 
-const allowedCharactersInRoomId = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 function validateRoomId(cmd)
 {
@@ -34,13 +34,9 @@ function validateRoomId(cmd)
 
     const displayName = cmd["displayname"];
     const roomId = cmd["roomid"];
-    if (roomId.length !== 6)
-        throw "Expecting a string of length 6";
-    for (let c of roomId)
-    {
-        if (allowedCharactersInRoomId.indexOf(c) < 0)
-            throw `Character '${c}' is not allowed in room ID`;
-    }
+
+    checkRoomId(roomId);
+
     return [ roomId, displayName ];
 }
 

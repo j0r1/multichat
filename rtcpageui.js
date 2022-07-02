@@ -87,7 +87,7 @@ let videosAndNames = [];
 
 // Just a very basic implementation for now
 
-function createVideoElement(uuid, displayName)
+export function createVideoElement(uuid, displayName)
 {
     let vid = document.createElement("video");
     vid.setAttribute("autoplay", "");
@@ -107,7 +107,7 @@ function createVideoElement(uuid, displayName)
     return vid;
 }
 
-function removeVideo(uuid)
+export function removeVideo(uuid)
 {
     let found = false;
     for (let i = 0 ; i < videosAndNames.length ; i++)
@@ -200,7 +200,7 @@ function applyLayout(layout)
         parent.removeChild(currentCells[i]);
 }
 
-function toggleNextLayout()
+export function toggleNextLayout()
 {
     let layouts = layoutsForCells[videosAndNames.length];
     currentLayoutIndex = (currentLayoutIndex+1)%layouts.length;
@@ -208,7 +208,7 @@ function toggleNextLayout()
     applyLayout(layouts[currentLayoutIndex]);
 }
 
-function toggleLayoutStyle()
+export function toggleLayoutStyle()
 {
     if (layoutsForCells === layoutsWithInset)
         layoutsForCells = layoutsEqualSize;
@@ -219,7 +219,7 @@ function toggleLayoutStyle()
     toggleNextLayout();
 }
 
-function showButtons(show)
+export function showButtons(show)
 {
     let elem = document.getElementById("buttons");
     if (show)

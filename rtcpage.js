@@ -1,3 +1,6 @@
+import { checkRoomId } from "./checkroomid.js";
+import { createVideoElement, removeVideo, toggleNextLayout,
+        toggleLayoutStyle, showButtons  } from "./rtcpageui.js";
 
 class RTCCommunicator
 {
@@ -530,6 +533,27 @@ function getUserAndRoom()
                 $("#input_server").val(server);
                 $("#input_room").val(room);
             },
+            beforeClose: function() {
+                try
+                {
+                    let name = $("#input_name").val();
+                    let server = $("#input_server").val();
+                    let room = $("#input_room").val();    
+
+                    if (name.length < 1)
+                        throw "Your name must be at least 1 character long";
+                    if (!(server.startsWith("ws://") || server.startsWith("wss://")))
+                        throw "The server must start with ws:// or wss://";
+                    checkRoomId(room);
+                }
+                catch(err)
+                {
+                    vex.dialog.alert("" + err);
+                    return false;
+                }
+
+                return true;
+            },
             callback: function (data) {
                 if (!data)
                 {
@@ -550,10 +574,15 @@ function getUserAndRoom()
     });
 }
 
-async function main()
+export async function main()
 {
     vex.defaultOptions.className = 'vex-theme-wireframe';
     document.getElementById("message").style.display = "none";
+    document.getElementById("buttonnextwebcam").onclick = toggleNextWebCam;
+    document.getElementById("buttonnextlayout").onclick = toggleNextLayout;
+    document.getElementById("buttonlayoutstyle").onclick = toggleLayoutStyle;
+    document.getElementById("buttontogglemute").onclick = toggleMute;
+    document.getElementById("buttonreload").onclick = () => window.location.reload();
 
     backupStream = await setupBackupStream();
     setInterval(periodicCheckWebCamAvailable, 1000);
