@@ -1,0 +1,77 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <pre id="log"></pre>
+    <script>
+
+function log(s)
+{
+    document.getElementById("log").innerText += s + "\n";
+}
+
+class Device
+{
+    constructor(audioOrVideo)
+    {
+        let opts = { "audio": false, "video": false };
+        if (audioOrVideo === "audio")
+            opts.audio = true;
+        else if (audioOrVideo === "video")
+            opts.video = true;
+        else
+            throw new Error("'audioOrVideo' parameter must be either 'audio' or 'video'");
+
+        this._opts = opts;
+        this._kind = audioOrVideo + "input";
+        this._isInit = false;
+    }
+
+    async init()
+    {
+        console.log(this);
+        if (this._isInit)
+            throw new Error("Already initialized");
+
+        let devices = await navigator.mediaDevices.enumerateDevices();
+        let filteredDevices = [];
+        devices.forEach((device) => {
+            if (device.kind === this._kind)
+                filteredDevices.push(device);
+        })
+
+        log(JSON.stringify(filteredDevices, null, 2));
+
+
+        this._isInit = true;
+    }
+}
+
+async function main()
+{
+    log("Video");
+    let v = new Device("video");
+    await v.init();
+
+    log("Audio");
+    let a = new Device("audio");
+    await a.init();
+
+    log("Audio output")
+    let devices = await navigator.mediaDevices.enumerateDevices();
+    let filteredDevices = [];
+    devices.forEach((device) => {
+        if (device.kind === "audiooutput")
+            filteredDevices.push(device);
+    })
+
+    log(JSON.stringify(filteredDevices, null, 2));
+}
+
+main().catch((err) => log("" + err));
+    </script>
+</body>
+</html>
